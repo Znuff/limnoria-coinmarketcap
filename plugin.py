@@ -72,34 +72,40 @@ class Coinmarketcap(callbacks.Plugin):
         value = { }
 
         for x in data:
-            value[x['symbol']] = x
+            if x['symbol'] not in value:
+                value[x['symbol']] = x
 
         if data:
             try:
                 exchange_rate = value['%s' % curr1.upper()]['price_%s' % curr2.lower()]
             except:
                 irc.error('no such currency', Raise=True)
-
             try:
                 result = number * float(exchange_rate)
-                change_24h = round(float(value['%s' % curr1.upper()]['percent_change_24h']), 2)
+                
+                try: 
+                    change_24h = float(value['%s' % curr1.upper()]['percent_change_24h'])
 
-                if change_24h >= 0:
-                    change = '(%s)' % ircutils.mircColor('+%.2f%%' % change_24h, 'green')
-                else:
-                    change = '(%s)' % ircutils.mircColor('%.2f%%' % change_24h, 'red')
+                    if change_24h >= 0:
+                        change = '(%s)' % ircutils.mircColor('+%.2f%%' % change_24h, 'green')
+                    else:
+                        change = '(%s)' % ircutils.mircColor('%.2f%%' % change_24h, 'red')
+                except:
+                    change = ''
 
                 coin_name = value['%s' % curr1.upper()]['id']
                 coin_url = 'https://coinmarketcap.com/currencies/%s' % coin_name
-
-
-                irc.reply(format('%s %s == %s %s %s %s',
+                
+                message = format('%s %s == %s %s %s %s',
                     ('%.10f' % number).rstrip('0').rstrip('.'),
                     curr1.upper(),
                     ('%.10f' % result).rstrip('0').rstrip('.'),
                     curr2.upper(),
                     change,
-                    coin_url))
+                    coin_url)
+                
+                irc.reply(message)
+
             except:
                 irc.error('I have no idea. Something fucked up.')
 
