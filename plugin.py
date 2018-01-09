@@ -64,7 +64,11 @@ class Coinmarketcap(callbacks.Plugin):
         url = 'https://api.coinmarketcap.com/v1/ticker/?convert=%s&limit=0'
 
         try:
-            content = utils.web.getUrl(url % curr2.upper())
+            headers = {
+                    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3298.3 Safari/537.36',
+                    'authority': 'api.coinmarketcap.com',
+                    }
+            content = utils.web.getUrl(url % curr2.upper(), timeout=5, headers=headers )
         except utils.web.Error, e:
             irc.error(str(e), Raise=True)
 
@@ -103,7 +107,7 @@ class Coinmarketcap(callbacks.Plugin):
                     curr2.upper(),
                     change,
                     coin_url)
-                
+
                 irc.reply(message)
 
             except:
