@@ -61,7 +61,7 @@ class Coinmarketcap(callbacks.Plugin):
         # if not api_key:
         #    irc.error('No API Key configured.')
 
-        url = 'https://api.coinmarketcap.com/v1/ticker/?convert=%s&limit=0'
+        url = 'https://api.coinmarketcap.com/v1/ticker/?convert=%s&limit=0&ref=converter'
 
         try:
             headers = {
@@ -69,10 +69,10 @@ class Coinmarketcap(callbacks.Plugin):
                     'authority': 'api.coinmarketcap.com',
                     }
             content = utils.web.getUrl(url % curr2.upper(), timeout=5, headers=headers )
-        except utils.web.Error, e:
+        except utils.web.Error as e:
             irc.error(str(e), Raise=True)
 
-        data = json.loads(content)
+        data = json.loads(content.decode('utf-8'))
         value = { }
 
         for x in data:
