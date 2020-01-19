@@ -33,6 +33,7 @@ from supybot.commands import *
 import supybot.plugins as plugins
 import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
+import supybot.log as log
 try:
     from supybot.i18n import PluginInternationalization
     _ = PluginInternationalization('Coinmarketcap')
@@ -41,8 +42,10 @@ except ImportError:
     # without the i18n module
     _ = lambda x: x
 
-import json
-
+try:
+    import json
+except Exception as e:
+    log.error('Could not import module: {0}'.format(e))
 
 class Coinmarketcap(callbacks.Plugin):
     """Coinmarketcap conversion"""
@@ -55,65 +58,77 @@ class Coinmarketcap(callbacks.Plugin):
         defaults to 1.
         """
 
-        # not needed yet
-        # api_key = self.registryValue('apikey')
+        api_key = self.registryValue('api_key')
+        if not api_key:
+            irc.error('No CoinMarketCap API Key', Raise=True)
 
-        # if not api_key:
-        #    irc.error('No API Key configured.')
+        curr1 = curr1.upper()
+        curr2 = curr2.upper()
 
-        url = 'https://api.coinmarketcap.com/v1/ticker/?convert=%s&limit=0&ref=converter'
+        url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?symbol={0}&convert={1}'
+        headers = {
+                'Accepts': 'application/json',
+                'X-CMC_PRO_API_KEY': api_key }
 
         try:
-            headers = {
-                    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3298.3 Safari/537.36',
-                    'authority': 'api.coinmarketcap.com',
-                    }
-            content = utils.web.getUrl(url % curr2.upper(), timeout=5, headers=headers )
-        except utils.web.Error as e:
-            irc.error(str(e), Raise=True)
+            content = utils.web.getUrl(url.format(curr1, curr2), timeout=3, headers=headers).decode('utf-8')
+        except Exception as e:
+            # there doesn't seem to be a way to handle exceptions based on the error code with utils.web.getUrl()
+            e = str(e)
+            if '401' in e:
+                irc.error('api key error → {0}'.format(e), Raise=True)
+            elif '400' in e:
+                irc.error('probably unknown currency → {0}'.format(e), Raise=True)
+            else:
+                irc.error(e, Raise=True)
 
-        data = json.loads(content.decode('utf-8'))
-        value = { }
+        try:
+            j = json.loads(content)
+        except Exception as e:
+            irc.error('could not load json: {0}'.format(e))
 
-        for x in data:
-            if x['symbol'] not in value:
-                value[x['symbol']] = x
-
-        if data:
+        if j['status']['error_code'] == 0 and j['data']:
             try:
-                exchange_rate = value['%s' % curr1.upper()]['price_%s' % curr2.lower()]
+                exchange_rate = j['data'][curr1]['quote'][curr2]['price']
             except:
                 irc.error('no such currency', Raise=True)
+
             try:
                 result = number * float(exchange_rate)
-                
-                try: 
-                    change_24h = float(value['%s' % curr1.upper()]['percent_change_24h'])
+            except Exception as e:
+                irc.error('could not calculate result: {0}'.format(e), Raise=true)
 
-                    if change_24h >= 0:
-                        change = '(%s)' % ircutils.mircColor('+%.2f%%' % change_24h, 'green')
-                    else:
-                        change = '(%s)' % ircutils.mircColor('%.2f%%' % change_24h, 'red')
-                except:
-                    change = ''
+            try:
+                change_24h = j['data'][curr1]['quote'][curr2]['percent_change_24h']
 
-                coin_name = value['%s' % curr1.upper()]['id']
-                coin_url = 'https://coinmarketcap.com/currencies/%s' % coin_name
-                
-                message = format('%s %s == %s %s %s %s',
+                if change_24h >= 0:
+                    change = '(%s)' % ircutils.mircColor('+%.2f%%' % change_24h, 'green')
+                else:
+                    change = '(%s)' % ircutils.mircColor( '%.2f%%' % change_24h, 'red')
+            except:
+                change = ''
+
+            try:
+                coin_name = j['data'][curr1]['slug']
+                coin_url = 'https://coinmarketcap.com/currencies/{0}'.format(coin_name)
+            except:
+                coin_name = ''
+                coin_url = ''
+
+            message = format('%s %s == %s %s %s %s',
                     ('%.10f' % number).rstrip('0').rstrip('.'),
-                    curr1.upper(),
+                    curr1,
                     ('%.10f' % result).rstrip('0').rstrip('.'),
-                    curr2.upper(),
+                    curr2,
                     change,
                     coin_url)
 
-                irc.reply(message)
+            irc.reply(message)
 
-            except:
-                irc.error('I have no idea. Something fucked up.')
+        else:
+            irc.error('API Error → {0}'.format(j['status']['error_message']))
 
-    convert = wrap(convert, [optional('float', 1.0), 'lowered', 'to', 'lowered'])
+    convert = wrap(convert, [optional('float', 1.0), 'something', 'to', 'something'])
 
 Class = Coinmarketcap
 
