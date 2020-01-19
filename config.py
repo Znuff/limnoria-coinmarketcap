@@ -53,5 +53,7 @@ Coinmarketcap = conf.registerPlugin('Coinmarketcap')
 # conf.registerGlobalValue(Coinmarketcap, 'someConfigVariableName',
 #     registry.Boolean(False, _("""Help for someConfigVariableName.""")))
 
+conf.registerGlobalValue(Coinmarketcap, 'api_key', registry.String('',
+    _("""CoinMarketCap API Key""")))
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
