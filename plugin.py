@@ -85,7 +85,7 @@ class Coinmarketcap(callbacks.Plugin):
         try:
             j = json.loads(content)
         except Exception as e:
-            irc.error('could not load json: {0}'.format(e))
+            irc.error('could not load json: {0}'.format(e), Raise=True)
 
         if j['status']['error_code'] == 0 and j['data']:
             try:
