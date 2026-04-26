@@ -1,5 +1,5 @@
 ###
-# Copyright (c) 2018, Bogdan Ilisei
+# Copyright (c) 2018, Znuff
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -42,10 +42,7 @@ except ImportError:
     # without the i18n module
     _ = lambda x: x
 
-try:
-    import json
-except Exception as e:
-    log.error('Could not import module: {0}'.format(e))
+import json
 
 class Coinmarketcap(callbacks.Plugin):
     """Coinmarketcap conversion"""
@@ -73,14 +70,15 @@ class Coinmarketcap(callbacks.Plugin):
         try:
             content = utils.web.getUrl(url.format(curr1, curr2), timeout=3, headers=headers).decode('utf-8')
         except Exception as e:
-            # there doesn't seem to be a way to handle exceptions based on the error code with utils.web.getUrl()
-            e = str(e)
-            if '401' in e:
-                irc.error('api key error → {0}'.format(e), Raise=True)
-            elif '400' in e:
-                irc.error('probably unknown currency → {0}'.format(e), Raise=True)
+            # utils.web.getUrl() does not expose HTTP status codes directly;
+            # we embed the raw error message and let the user/operator interpret it.
+            err_str = str(e)
+            if '401' in err_str:
+                irc.error('API key error: {0}'.format(err_str), Raise=True)
+            elif '400' in err_str:
+                irc.error('Bad request (unknown currency?): {0}'.format(err_str), Raise=True)
             else:
-                irc.error(e, Raise=True)
+                irc.error('Request failed: {0}'.format(err_str), Raise=True)
 
         try:
             j = json.loads(content)
@@ -90,13 +88,13 @@ class Coinmarketcap(callbacks.Plugin):
         if j['status']['error_code'] == 0 and j['data']:
             try:
                 exchange_rate = j['data'][curr1]['quote'][curr2]['price']
-            except:
+            except Exception:
                 irc.error('no such currency', Raise=True)
 
             try:
                 result = number * float(exchange_rate)
             except Exception as e:
-                irc.error('could not calculate result: {0}'.format(e), Raise=true)
+                irc.error('could not calculate result: {0}'.format(e), Raise=True)
 
             try:
                 change_24h = j['data'][curr1]['quote'][curr2]['percent_change_24h']
@@ -105,13 +103,13 @@ class Coinmarketcap(callbacks.Plugin):
                     change = '(%s)' % ircutils.mircColor('+%.2f%%' % change_24h, 'green')
                 else:
                     change = '(%s)' % ircutils.mircColor( '%.2f%%' % change_24h, 'red')
-            except:
+            except Exception:
                 change = ''
 
             try:
                 coin_name = j['data'][curr1]['slug']
                 coin_url = 'https://coinmarketcap.com/currencies/{0}'.format(coin_name)
-            except:
+            except Exception:
                 coin_name = ''
                 coin_url = ''
 

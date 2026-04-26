@@ -1,5 +1,5 @@
 ###
-# Copyright (c) 2018, Bogdan Ilisei
+# Copyright (c) 2018, Znuff
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
