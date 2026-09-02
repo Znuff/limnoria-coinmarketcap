@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Supybot test-run artifacts
+conf/
+data/
+
 # C extensions
 *.so
 

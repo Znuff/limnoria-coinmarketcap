@@ -33,7 +33,7 @@ import supybot.registry as registry
 try:
     from supybot.i18n import PluginInternationalization
     _ = PluginInternationalization('Coinmarketcap')
-except:
+except ImportError:
     # Placeholder that allows to run the plugin on a bot
     # without the i18n module
     _ = lambda x: x
@@ -54,6 +54,13 @@ Coinmarketcap = conf.registerPlugin('Coinmarketcap')
 #     registry.Boolean(False, _("""Help for someConfigVariableName.""")))
 
 conf.registerGlobalValue(Coinmarketcap, 'api_key', registry.String('',
-    _("""CoinMarketCap API Key""")))
+    _("""CoinMarketCap API Key. If empty, the plugin uses CoinMarketCap's
+    free keyless public API, which needs no key but has lower (IP-based)
+    rate limits.""")))
+
+conf.registerGlobalValue(Coinmarketcap, 'cache_timeout', registry.Integer(60,
+    _("""Seconds to cache API responses before fetching them again.
+    CoinMarketCap refreshes quotes every 60 seconds, so a higher value
+    will not return fresher data. Set to 0 to disable caching.""")))
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
